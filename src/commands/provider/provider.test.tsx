@@ -11,6 +11,7 @@ import {
   buildCodexOAuthProfileEnv,
   buildCurrentProviderSummary,
   buildProfileSaveMessage,
+  buildProviderManagerCompletion,
   getProviderWizardDefaults,
   ProviderWizard,
   TextEntryDialog,
@@ -264,6 +265,32 @@ test('wizard step remount prevents a typed API key from leaking into the next fi
   expect(output).not.toContain('sk-secret-12345678')
 })
 
+test('buildProviderManagerCompletion records provider switch event and model-visible reminder', () => {
+  const completion = buildProviderManagerCompletion({
+    action: 'activated',
+    activeProviderName: 'Sadaf Provider',
+    activeProviderModel: 'sadaf-model',
+    message: 'Provider switched to Sadaf Provider (sadaf-model)',
+  })
+
+  expect(completion.message).toBe(
+    'Provider switched to Sadaf Provider (sadaf-model)',
+  )
+  expect(completion.metaMessages).toEqual([
+    '<system-reminder>Provider switched mid-session to Sadaf Provider using model sadaf-model. Use this provider/model for subsequent requests unless the user switches again.</system-reminder>',
+  ])
+})
+
+test('buildProviderManagerCompletion skips provider reminder when manager is cancelled', () => {
+  const completion = buildProviderManagerCompletion({
+    action: 'cancelled',
+    message: 'Provider manager closed',
+  })
+
+  expect(completion.message).toBe('Provider manager closed')
+  expect(completion.metaMessages).toBeUndefined()
+})
+
 test('buildProfileSaveMessage maps provider fields without echoing secrets', () => {
   const message = buildProfileSaveMessage(
     'openai',
@@ -487,8 +514,8 @@ test('buildCurrentProviderSummary redacts poisoned model and endpoint values', (
   })
 
   expect(summary.providerLabel).toBe('OpenAI-compatible')
-  expect(summary.modelLabel).toBe('sk-...5678')
-  expect(summary.endpointLabel).toBe('sk-...5678')
+  expect(summary.modelLabel).toBe('sk-...678')
+  expect(summary.endpointLabel).toBe('sk-...678')
 })
 
 test('buildCurrentProviderSummary labels generic local openai-compatible providers', () => {
